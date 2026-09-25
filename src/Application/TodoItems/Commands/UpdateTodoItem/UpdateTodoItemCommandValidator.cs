@@ -1,0 +1,13 @@
+using FluentValidation;
+
+namespace Application.TodoItems.Commands.UpdateTodoItem;
+
+public class UpdateTodoItemCommandValidator : AbstractValidator<UpdateTodoItemCommand>
+{
+    public UpdateTodoItemCommandValidator()
+    {
+        RuleFor(v => v.Title)
+            .NotEmpty().WithMessage("Заголовок завдання є обов'язковим.")
+            .MaximumLength(200).WithMessage("Заголовок завдання не повинен перевищувати 200 символів.");
+    }
+}
