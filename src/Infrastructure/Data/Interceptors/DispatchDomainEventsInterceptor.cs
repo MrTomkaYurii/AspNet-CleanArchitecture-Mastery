@@ -8,6 +8,14 @@ namespace Infrastructure.Data.Interceptors;
 /// <summary>
 /// EF Core Interceptor для автоматичної публікації доменних подій.
 /// 
+/// 📌 КОРОТКО (ЩО ЦЕ ЗА КЛАСИ І НАВІЩО ВОНИ):
+/// • `SaveChangesInterceptor` — це вбудований клас Entity Framework Core (пастка / хук / middleware).
+///   Він автоматично спрацьовує щоразу, коли десь у системі викликається `_context.SaveChangesAsync()`.
+/// • `DispatchDomainEventsInterceptor` — наш клас-«поштовик».
+///   Перед тим як записати дані в базу, він автоматично забирає всі доменні події, накопичені в сутностях
+///   (наприклад, «Завдання виконано»), і розсилає їх слухачам через MediatR.
+/// 
+/// ─────────────────────────────────────────────────────────────────────────────
 /// НАВЧАЛЬНЕ ПОЯСНЕННЯ (Метод IMediator.Publish):
 /// 
 /// 1. Що таке `IMediator` у цьому перехоплювачі?
@@ -37,12 +45,18 @@ public class DispatchDomainEventsInterceptor : SaveChangesInterceptor
         _mediator = mediator;
     }
 
+    /// <summary>
+    /// Автоматично перехоплює синхронний виклик SaveChanges().
+    /// </summary>
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
         DispatchDomainEvents(eventData.Context).GetAwaiter().GetResult();
         return base.SavingChanges(eventData, result);
     }
 
+    /// <summary>
+    /// Автоматично перехоплює асинхронний виклик SaveChangesAsync().
+    /// </summary>
     public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
         DbContextEventData eventData,
         InterceptionResult<int> result,
@@ -52,26 +66,29 @@ public class DispatchDomainEventsInterceptor : SaveChangesInterceptor
         return await base.SavingChangesAsync(eventData, result, cancellationToken);
     }
 
+    /// <summary>
+    /// Головний алгоритм: дістати всі події із сутностей і розіслати їх через MediatR.
+    /// </summary>
     private async Task DispatchDomainEvents(DbContext? context)
     {
         if (context is null) return;
 
-        // 1. Знаходимо всі відстежувані ChangeTracker сутності, які мають накопичені події
+        // КРОК 1: Знаходимо в ChangeTracker (кеші пам'яті EF Core) усі сутності, які мають невідправлені події
         var entities = context.ChangeTracker
             .Entries<BaseEntity>()
             .Where(e => e.Entity.DomainEvents.Any())
             .Select(e => e.Entity)
             .ToList();
 
-        // 2. Збираємо всі події в один список
+        // КРОК 2: Збираємо всі події в єдиний список
         var domainEvents = entities
             .SelectMany(e => e.DomainEvents)
             .ToList();
 
-        // 3. Очищаємо події в сутностях, щоб запобігти їх повторній публікації
+        // КРОК 3: Очищаємо чергу подій у сутностях, щоб запобігти їх повторній відправці
         entities.ForEach(e => e.ClearDomainEvents());
 
-        // 4. Публікуємо кожну подію через метод _mediator.Publish()
+        // КРОК 4: Публікуємо кожну подію через _mediator.Publish() для всіх зареєстрованих INotificationHandler
         foreach (var domainEvent in domainEvents)
         {
             await _mediator.Publish(domainEvent);
