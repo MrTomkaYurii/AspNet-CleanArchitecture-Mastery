@@ -71,7 +71,7 @@
 ```mermaid
 graph TD
     subgraph "Зовнішній світ (Infrastructure & Presentation)"
-        Web["🌐 WebApi<br/>(Controllers, ProblemDetails, Scalar UI)"]
+        Web["🌐 WebApi<br/>(Controllers, ProblemDetails, Swagger & Scalar UI)"]
         Infra["🗄️ Infrastructure<br/>(EF Core, SQLite, Interceptors, Bogus Seeder)"]
     end
 
@@ -128,7 +128,7 @@ graph TD
 - [src/WebApi/Controllers/ApiControllerBase.cs](src/WebApi/Controllers/ApiControllerBase.cs) — тонкий контролер з `ISender` та методом `HandleResult()` для автоматичного мапінгу `Result<T>` у відповіді ProblemDetails (RFC 7807).
 - [src/WebApi/Controllers/TodoListsController.cs](src/WebApi/Controllers/TodoListsController.cs) та [TodoItemsController.cs](src/WebApi/Controllers/TodoItemsController.cs) — REST API ендпоінти.
 - [src/WebApi/Middleware/ExceptionHandlingMiddleware.cs](src/WebApi/Middleware/ExceptionHandlingMiddleware.cs) — централізований обробник аварійних винятків.
-- [src/WebApi/Program.cs](src/WebApi/Program.cs) — конфігурація DI, запуск Seeder та підключення інтерактивного UI Scalar.
+- [src/WebApi/Program.cs](src/WebApi/Program.cs) — конфігурація DI, запуск Seeder та підключення інтерактивних UI Swagger і Scalar.
 
 [⬆ До змісту](#toc)
 
@@ -160,10 +160,14 @@ info: Microsoft.Hosting.Lifetime[14]
       Now listening on: http://localhost:5194
 ```
 
-### 4. Інтерактивна документація Scalar API UI
+### 4. Інтерактивна документація API (Swagger & Scalar UI)
 Відкрийте браузер за адресою:  
-👉 **`http://localhost:5194`** (або `http://localhost:5194/scalar/v1`)  
-Вам відкриється сучасна, зручна панель тестування всіх ендпоінтів з можливістю відправки запитів в один клік!
+👉 **`http://localhost:5194`** (автоматичний редирект на Swagger UI)  
+
+Доступні два зручні інтерфейси для тестування ендпоінтів:
+- 📑 **Swagger UI:** [`http://localhost:5194/swagger`](http://localhost:5194/swagger)
+- 🌟 **Scalar API UI:** [`http://localhost:5194/scalar/v1`](http://localhost:5194/scalar/v1)
+- 📄 **OpenAPI специфікація JSON:** [`/swagger/v1/swagger.json`](http://localhost:5194/swagger/v1/swagger.json) та [`/openapi/v1.json`](http://localhost:5194/openapi/v1.json)
 
 [⬆ До змісту](#toc)
 

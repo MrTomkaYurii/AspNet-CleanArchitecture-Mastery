@@ -21,9 +21,9 @@ namespace WebApi.Controllers;
 ///    контролеру ніколи не потрібно напряму викликати `Publish()` для доменних подій (це робить інфраструктура
 ///    або хендлери), йому потрібен лише метод `Send()`.
 /// 
-/// 3. Як працює метод `ISender.Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken)`:
+/// 3. Як працює метод `ISender.Send`:
 ///    - Приймає об'єкт команди чи запиту (`IRequest`).
-///    - Знаходить у DI контейнері зареєстрований `IRequestHandler<TRequest, TResponse>`.
+///    - Знаходить у DI контейнері зареєстрований `IRequestHandler&lt;TRequest, TResponse&gt;`.
 ///    - Пропускає запит через ланцюжок зареєстрованих Pipeline Behaviors (Logging, Validation тощо).
 ///    - Викликає метод `Handle()` відповідного хендлера та повертає результат.
 /// 
