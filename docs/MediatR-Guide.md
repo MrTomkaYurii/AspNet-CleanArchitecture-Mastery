@@ -245,7 +245,65 @@ graph TD
 ---
 
 <a id="pipeline-flow"></a>
-### 🔸 Схема проходження запиту крізь конвеєр
+### 🔸 Схема проходження запиту крізь конвеєр (Структурний Flowchart)
+
+```mermaid
+flowchart TD
+    Client(["🌐 Клієнт (HTTP Запит)"]) -->|POST /api/todolists| Ctrl["📱 Controller (ISender.Send)"]
+
+    subgraph Pipeline ["🛡️ MediatR Pipeline (Конвеєр обробки Behaviors)"]
+        direction TB
+
+        subgraph B1 ["1️⃣ LoggingBehavior"]
+            LogEntry["📝 Запис у лог:<br/>Початок виконання команди"]
+            LogExit["✅ Запис у лог:<br/>Команду успішно виконано"]
+        end
+
+        subgraph B2 ["2️⃣ ValidationBehavior"]
+            Validate{"🔍 FluentValidation:<br/>Чи всі поля валідні?"}
+            ShortCircuit["⛔ SHORT-CIRCUITING:<br/>Викидає ValidationException<br/>(Хендлер не викликається!)"]
+        end
+
+        subgraph B3 ["3️⃣ PerformanceBehavior"]
+            PerfStart["⏱️ Stopwatch.Start()<br/>Запуск заміру часу"]
+            PerfCheck{"⏱️ Час виконання<br/>> 500 мс?"}
+            PerfWarn["⚠️ LogWarning:<br/>Повільний запит!"]
+            PerfOk["⏱️ Час в нормі"]
+        end
+
+        subgraph Core ["🎯 Бізнес-ядро (Handler)"]
+            Handler["⚙️ CreateTodoListCommandHandler<br/>(IRequestHandler)"]
+            DB[("🗄️ SQLite Database")]
+        end
+    end
+
+    Ctrl --> LogEntry
+    LogEntry -->|"await next()"| Validate
+
+    Validate -->|❌ Ні (Помилка)| ShortCircuit
+    ShortCircuit -->|"400 Bad Request"| Ctrl
+
+    Validate -->|✔️ Так (Успіх)| PerfStart
+    PerfStart -->|"await next()"| Handler
+
+    Handler <-->|"SaveChangesAsync()"| DB
+    Handler -->|"return Result / Id"| PerfCheck
+
+    PerfCheck -->|Так| PerfWarn --> LogExit
+    PerfCheck -->|Ні| PerfOk --> LogExit
+
+    LogExit -->|"return Id"| Ctrl
+    Ctrl -->|"201 Created (ProblemDetails при помилці)"| Client
+
+    style Pipeline fill:#f8f9fa,stroke:#455a64,stroke-width:2px;
+    style B1 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px;
+    style B2 fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
+    style B3 fill:#ede7f6,stroke:#7b1fa2,stroke-width:2px;
+    style Core fill:#e8f5e9,stroke:#388e3c,stroke-width:3px;
+    style ShortCircuit fill:#ffebee,stroke:#d32f2f,stroke-width:2px;
+```
+
+### 🔸 Діаграма послідовності викликів (Sequence Diagram)
 
 ```mermaid
 sequenceDiagram
