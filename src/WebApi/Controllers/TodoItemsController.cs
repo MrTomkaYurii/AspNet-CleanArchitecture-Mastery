@@ -2,6 +2,7 @@ using Application.Common.Models;
 using Application.TodoItems.Commands.CreateTodoItem;
 using Application.TodoItems.Commands.DeleteTodoItem;
 using Application.TodoItems.Commands.UpdateTodoItem;
+using Application.TodoItems.Queries.GetTodoItemById;
 using Application.TodoItems.Queries.GetTodoItemsWithPagination;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,6 +22,21 @@ public class TodoItemsController : ApiControllerBase
         [FromQuery] GetTodoItemsWithPaginationQuery query)
     {
         return await Mediator.Send(query);
+    }
+
+    /// <summary>
+    /// Отримати конкретне завдання за Id.
+    /// НАВЧАЛЬНА ДЕМОНСТРАЦІЯ: Використання Result Pattern замість викидання винятків!
+    /// Якщо запис знайдено -> 200 OK з даними.
+    /// Якщо запис відсутній -> 404 Not Found через HandleResult(result) без Exception!
+    /// </summary>
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(TodoItemBriefDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TodoItemBriefDto>> GetById(int id)
+    {
+        var result = await Mediator.Send(new GetTodoItemByIdQuery(id));
+        return HandleResult(result);
     }
 
     /// <summary>

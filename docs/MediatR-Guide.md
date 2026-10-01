@@ -4,6 +4,31 @@
 
 ---
 
+<a id="toc"></a>
+## 📑 Зміст довідника
+
+> *Клікніть на будь-який пункт, щоб перейти до відповідного розділу:*
+
+- [🗺️ Загальна карта інтерфейсів MediatR](#map)
+- [1. Базові інтерфейси відправки повідомлень](#part-1)
+  - [🔸 ISender — відправка 1-до-1](#isender)
+  - [🔸 IPublisher — публікація 1-до-N](#ipublisher)
+  - [🔸 IMediator — повний фасад](#mediator)
+- [2. Інтерфейси для CQRS (Commands & Queries)](#part-2)
+  - [🔸 IRequest&lt;TResponse&gt; та IRequest](#irequest)
+  - [🔸 IRequestHandler&lt;TRequest, TResponse&gt;](#irequesthandler)
+- [3. Інтерфейси для доменних подій (Domain Events)](#part-3)
+  - [🔸 INotification](#inotification)
+  - [🔸 INotificationHandler&lt;TNotification&gt;](#inotificationhandler)
+- [4. Конвеєри поведінки (Pipeline Behaviors)](#part-4)
+  - [🔸 IPipelineBehavior та RequestHandlerDelegate](#pipeline-behaviors)
+  - [🔸 Схема проходження запиту крізь конвеєр](#pipeline-flow)
+- [5. Реєстрація у контейнері Dependency Injection (Open Generics)](#part-5)
+- [📊 Повернутися до презентації (Слайд 16)](Architecture-Presentation.md#slide-16)
+
+---
+
+<a id="map"></a>
 ## 🗺️ Загальна карта інтерфейсів MediatR
 
 ```mermaid
@@ -40,10 +65,14 @@ graph TD
     end
 ```
 
+[⬆ До змісту](#toc) • [До розділу 1 ➡](#part-1)
+
 ---
 
+<a id="part-1"></a>
 ## 1. Базові інтерфейси відправки повідомлень
 
+<a id="isender"></a>
 ### 🔸 `ISender`
 - **Що це**: Інтерфейс для передачі команд або запитів за схемою **"Один до одного" (Request-Response / Point-to-Point)**.
 - **Основний метод**:
@@ -51,7 +80,8 @@ graph TD
   Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default);
   ```
 - **Де використовується**:
-  У контролерах WebApi (`ApiControllerBase`):
+  У контролерах WebApi:  
+  👉 **[src/WebApi/Controllers/ApiControllerBase.cs](../src/WebApi/Controllers/ApiControllerBase.cs)** 📍 *(дивіться рядки 49–50)*
   ```csharp
   protected ISender Mediator => _mediator ??= HttpContext.RequestServices.GetRequiredService<ISender>();
   ```
@@ -60,6 +90,7 @@ graph TD
 
 ---
 
+<a id="ipublisher"></a>
 ### 🔸 `IPublisher`
 - **Що це**: Інтерфейс для публікації подій за схемою **"Один до багатьох" (Publish-Subscribe / Broadcast)**.
 - **Основний метод**:
@@ -69,7 +100,8 @@ graph TD
       where TNotification : INotification;
   ```
 - **Де використовується**:
-  В інфраструктурних перехоплювачах (`DispatchDomainEventsInterceptor`):
+  В інфраструктурних перехоплювачах:  
+  👉 **[src/Infrastructure/Data/Interceptors/DispatchDomainEventsInterceptor.cs](../src/Infrastructure/Data/Interceptors/DispatchDomainEventsInterceptor.cs)** 📍 *(дивіться рядки 74–78)*
   ```csharp
   foreach (var domainEvent in domainEvents)
   {
@@ -81,6 +113,7 @@ graph TD
 
 ---
 
+<a id="mediator"></a>
 ### 🔸 `IMediator`
 - **Що це**: Об'єднуючий інтерфейс, який успадковує як `ISender`, так і `IPublisher`:
   ```csharp
@@ -88,14 +121,19 @@ graph TD
   ```
 - Використовується там, де компоненту потрібні обидві можливості одночасно.
 
+[⬆ До змісту](#toc) • [До розділу 2 ➡](#part-2)
+
 ---
 
+<a id="part-2"></a>
 ## 2. Інтерфейси для CQRS (Commands & Queries)
 
+<a id="irequest"></a>
 ### 🔸 `IRequest<TResponse>` та `IRequest`
 - **Що це**: Маркерний інтерфейс (Marker Interface), який позначає клас як повідомлення запиту.
 - **Два різновиди**:
-  1. `IRequest<TResponse>` — використовується, коли обробник повертає значення (наприклад, ID створеного запису, DTO, список моделей).
+  1. `IRequest<TResponse>` — використовується, коли обробник повертає значення (наприклад, ID створеного запису, DTO, список моделей).  
+     👉 **[CreateTodoListCommand.cs](../src/Application/TodoLists/Commands/CreateTodoList/CreateTodoListCommand.cs)**
      ```csharp
      public record CreateTodoListCommand : IRequest<int>;
      public record GetTodoListsQuery : IRequest<TodoListsVm>;
@@ -108,25 +146,34 @@ graph TD
 
 ---
 
+<a id="irequesthandler"></a>
 ### 🔸 `IRequestHandler<TRequest, TResponse>`
 - **Що це**: Головний інтерфейс обробника (Handler) бізнес-логіки для конкретного `TRequest`.
 - **Основний метод**:
   ```csharp
   Task<TResponse> Handle(TRequest request, CancellationToken cancellationToken);
   ```
+- **Реалізація у нашому проекті:**  
+  👉 **[src/Application/TodoLists/Commands/CreateTodoList/CreateTodoListCommandHandler.cs](../src/Application/TodoLists/Commands/CreateTodoList/CreateTodoListCommandHandler.cs)** 📍 *(дивіться рядки 32–68)*
 - **Параметри методу `Handle`**:
   - `request` — екземпляр команди/запиту з усіма даними від клієнта.
   - `cancellationToken` — токен відміни операції. Його **обов'язково** потрібно передавати у всі асинхронні виклики (наприклад, `_context.SaveChangesAsync(cancellationToken)`). Якщо клієнт закрив вкладку або обірвався зв'язок, виконання в базі даних буде безпечно перервано.
 - **Головне правило**:
   Для одного `IRequest` у системі повинен існувати **РІВНО ОДИН** `IRequestHandler`. Якщо зареєструвати нуль або два — MediatR викине виняток.
 
+[⬆ До змісту](#toc) • [До розділу 3 ➡](#part-3)
+
 ---
 
+<a id="part-3"></a>
 ## 3. Інтерфейси для доменних подій (Domain Events)
 
+<a id="inotification"></a>
 ### 🔸 `INotification`
 - **Що це**: Маркерний інтерфейс для подій та сповіщень.
-- **Приклад у нашому коді**:
+- **Приклад у нашому коді**:  
+  👉 **[src/Domain/Common/BaseEvent.cs](../src/Domain/Common/BaseEvent.cs)**  
+  👉 **[src/Domain/Events/TodoItemCompletedEvent.cs](../src/Domain/Events/TodoItemCompletedEvent.cs)**
   ```csharp
   public abstract class BaseEvent : MediatR.INotification
   {
@@ -140,18 +187,20 @@ graph TD
   }
   ```
 - **Відмінність від `IRequest`**:
-  - `IRequest` — це наказ "Зроби дію" (команда, має 1 виконавця).
-  - `INotification` — це факт "Щось уже відбулося" (подія, на яку може підписатися будь-яка кількість модулів).
+  - `IRequest` — це наказ *"Зроби дію"* (команда, має 1 виконавця).
+  - `INotification` — це факт *"Щось уже відбулося"* (подія, на яку може підписатися будь-яка кількість модулів).
 
 ---
 
+<a id="inotificationhandler"></a>
 ### 🔸 `INotificationHandler<TNotification>`
 - **Що це**: Інтерфейс підписника на конкретну доменну подію.
 - **Основний метод**:
   ```csharp
   Task Handle(TNotification notification, CancellationToken cancellationToken);
   ```
-- **Приклад у нашому коді**:
+- **Приклад у нашому коді:**  
+  👉 **[src/Application/TodoItems/EventHandlers/TodoItemCompletedEventHandler.cs](../src/Application/TodoItems/EventHandlers/TodoItemCompletedEventHandler.cs)**
   ```csharp
   public class TodoItemCompletedEventHandler : INotificationHandler<TodoItemCompletedEvent>
   {
@@ -164,10 +213,14 @@ graph TD
   ```
   Можна створити безліч різних класів `INotificationHandler<TodoItemCompletedEvent>`, і MediatR викличе їх усі!
 
+[⬆ До змісту](#toc) • [До розділу 4 ➡](#part-4)
+
 ---
 
+<a id="part-4"></a>
 ## 4. Конвеєри поведінки (Pipeline Behaviors)
 
+<a id="pipeline-behaviors"></a>
 ### 🔸 `IPipelineBehavior<TRequest, TResponse>`
 - **Що це**: Інтерфейс для створення "Middleware для MediatR". Він дозволяє виконувати наскрізну логіку (логування, валідація, кешування, моніторинг) для **всіх** запитів у системі.
 - **Основний метод**:
@@ -177,6 +230,8 @@ graph TD
       RequestHandlerDelegate<TResponse> next, 
       CancellationToken cancellationToken);
   ```
+- **Реалізація у нашому проекті:**  
+  👉 **[src/Application/Common/Behaviors/ValidationBehavior.cs](../src/Application/Common/Behaviors/ValidationBehavior.cs)** 📍 *(дивіться рядки 44–73)*
 
 ### 🔸 `RequestHandlerDelegate<TResponse>`
 - **Що це**: Делегат, який представляє наступний крок у конвеєрі:
@@ -186,6 +241,11 @@ graph TD
 - **Як це працює**:
   - Виклик `await next()` передає керування наступному зареєстрованому Behavior або кінцевому `IRequestHandler`.
   - Якщо НЕ викликати `await next()` (як у випадку помилки валідації у `ValidationBehavior`), ланцюжок переривається (**Short-circuiting**), і хендлер навіть не починає виконуватися!
+
+---
+
+<a id="pipeline-flow"></a>
+### 🔸 Схема проходження запиту крізь конвеєр
 
 ```mermaid
 sequenceDiagram
@@ -226,11 +286,15 @@ sequenceDiagram
     deactivate Log
 ```
 
+[⬆ До змісту](#toc) • [До розділу 5 ➡](#part-5)
+
 ---
 
+<a id="part-5"></a>
 ## 5. Реєстрація у контейнері Dependency Injection
 
-У файлі `src/Application/DependencyInjection.cs`:
+У файлі:  
+👉 **[src/Application/DependencyInjection.cs](../src/Application/DependencyInjection.cs)** 📍 *(дивіться рядки 48–69)*
 ```csharp
 services.AddMediatR(cfg =>
 {
@@ -247,3 +311,7 @@ services.AddMediatR(cfg =>
 
 - **Що таке `typeof(IPipelineBehavior<,>)` з комою всередині?**  
   Це відкритий тип (Open Generic). Завдяки цьому нам не потрібно вручну прописувати `ValidationBehavior<CreateTodoListCommand, int>`, `ValidationBehavior<UpdateTodoListCommand, Unit>` і так далі для кожної команди. MediatR та .NET DI роблять це автоматично "на льоту" для абсолютно всіх команд та запитів!
+
+---
+
+[⬆ До змісту](#toc) • [📊 До Слайду 16 у презентації](Architecture-Presentation.md#slide-16)

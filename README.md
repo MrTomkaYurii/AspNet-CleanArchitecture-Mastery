@@ -1,261 +1,213 @@
-# 🏛️ Навчальний проект Clean Architecture на .NET
+# 🎓 Навчальний репозиторій: Clean Architecture на .NET 10
 
-> **Натхненний популярним шаблоном Джейсона Тейлора ([jasontaylordev/CleanArchitecture](https://github.com/jasontaylordev/CleanArchitecture)).**  
-> Проект розроблений як максимально прозорий, модульний та детально задокументований навчальний зразок, де **кожен клас, метод та патерн пояснено детальними україномовними коментарями**.
+[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![C#](https://img.shields.io/badge/C%23-13.0-239120?logo=csharp)](https://docs.microsoft.com/en-us/dotnet/csharp/)
+[![Clean Architecture](https://img.shields.io/badge/Architecture-Clean%20%2F%20Onion-blue)](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
+[![CQRS & MediatR](https://img.shields.io/badge/Patterns-CQRS%20%2B%20MediatR-orange)](https://github.com/jbogard/MediatR)
+[![EF Core](https://img.shields.io/badge/ORM-EF%20Core%20%2B%20SQLite-purple)](https://learn.microsoft.com/en-us/ef/core/)
+[![Bogus](https://img.shields.io/badge/Seeding-Bogus-green)](https://github.com/bchavez/Bogus)
 
----
-
-## 📌 Основні технології та концепції
-
-- **.NET 10** (C# 13 / 14)
-- **Чиста архітектура (Clean Architecture)**: 4 ізольованих шари (`Domain`, `Application`, `Infrastructure`, `WebApi`).
-- **CQRS (Command Query Responsibility Segregation)**: поділ операцій на читання (Queries) та зміну стану (Commands).
-- **MediatR**: внутрішньопроцесна шина повідомлень + конвеєри поведінки (**Pipeline Behaviors** для валідації, логування та моніторингу швидкодії).
-- **FluentValidation**: декларативна валідація бізнес-правил без засмічення хендлерів.
-- **Об'єкти-значення (Value Objects)**: незмінні типи предметної області (`Colour`, `Address`) з порівнянням за значеннями властивостей.
-- **Entity Framework Core**:
-  - Налаштування схеми БД виключно через **Fluent API** (`IEntityTypeConfiguration<T>`) — ніяких атрибутів у Domain!
-  - Демонстрація мапінгу Value Objects через `HasConversion` (для одинарних значень) та `OwnsOne` (для комплексних адрес).
-  - Автоматичний аудит дат через **EF Core Interceptor** (`AuditableEntityInterceptor`).
-  - Автоматична публікація доменних подій через **Interceptor** (`DispatchDomainEventsInterceptor`).
-- **Генератор тестових даних Bogus**: реалістичний сидинг україномовними даними при першому старті.
-- **Відсутність .NET Aspire**: проект запускається безпосередньо і не потребує Docker чи зовнішніх сервісів.
-- **Scalar / OpenAPI**: сучасний інтерактивний UI для перевірки та тестування ендпоінтів.
+> **Натхненний класичним шаблоном Джейсона Тейлора ([jasontaylordev/CleanArchitecture](https://github.com/jasontaylordev/CleanArchitecture)).**  
+> Цей репозиторій створений як **ідеальний практичний посібник** для розробників, які бажають розібратися в сучасній архітектурі enterprise-додатків на .NET без магії, зайвого оверхеду та без .NET Aspire.
 
 ---
 
-## 🏗️ Архітектура та правило залежностей (Dependency Rule)
+<a id="toc"></a>
+## 📑 Швидка навігація по README
 
-Головний закон чистої архітектури: **зовнішні шари залежать від внутрішніх, але внутрішні шари НІКОЛИ не знають про зовнішні**.
+- [📚 Матеріали курсу в цьому репозиторії](#materials)
+- [🎯 Навчальні цілі проекту](#goals)
+- [🏛️ Візуальна схема архітектури](#diagram)
+- [🗺️ Навігація по коду: Що і де дивитися студенту?](#code-nav)
+- [🚀 Швидкий старт](#quickstart)
+- [🧪 Сценарії для перевірки знань (Практикум)](#practice)
+- [🛠️ Практичне завдання: Як додати нову фічу?](#homework)
+- [🤝 Структура файлів рішення Visual Studio](#solution-structure)
+
+---
+
+<a id="materials"></a>
+## 📚 Матеріали курсу в цьому репозиторії
+
+У папці `docs/` та корені рішення для вас підготовлені повноцінні навчальні матеріали з повною клікабельною навігацією:
+
+| Документ | Опис | Швидкий перехід |
+| :--- | :--- | :--- |
+| 📊 **Архітектурний Майстер-клас** | Повна інтерактивна презентація з **26 слайдів-розділів**: аналогії, проблеми, схеми, таблиці та код | ➡️ [docs/Architecture-Presentation.md](docs/Architecture-Presentation.md#toc) |
+| 📡 **Довідник по MediatR** | Детальний аналіз інтерфейсів `ISender`, `IPublisher`, `IMediator`, `IRequest`, `INotification` та конвеєрів | ➡️ [docs/MediatR-Guide.md](docs/MediatR-Guide.md#toc) |
+| 💻 **Вихідний код проекту** | Готове працююче рішення з детальними XML- та inline-коментарями до кожного класу | ➡️ [`src/`](src/) |
+
+[⬆ До змісту](#toc)
+
+---
+
+<a id="goals"></a>
+## 🎯 Навчальні цілі проекту
+
+Вивчивши цей репозиторій, ви розберетеся в ключових темах сучасної архітектури:
+
+1. **Правило залежностей (The Dependency Rule):** Чому ядро бізнес-логіки не повинно знати про базу даних чи HTTP.  
+   👉 *Читати:* [Слайди 1–3 у презентації](docs/Architecture-Presentation.md#slide-1)
+2. **Domain-Driven Design (DDD) & Value Objects:** Чому одержимість примитивами (Primitive Obsession) — це зло, і як об'єкти-значення захищають бізнес-правила.  
+   👉 *Читати:* [Слайди 6–8 у презентації](docs/Architecture-Presentation.md#slide-6)
+3. **CQRS (Command Query Responsibility Segregation):** Чому моделі для читання та моделі для запису мають бути різними.  
+   👉 *Читати:* [Слайди 12–14 у презентації](docs/Architecture-Presentation.md#slide-12)
+4. **MediatR & Pipeline Behaviors:** Як будувати наскрізні конвеєри обробки (логування, валідація FluentValidation, моніторинг часу) за принципом «матрьошки».  
+   👉 *Читати:* [Слайди 15–19 у презентації](docs/Architecture-Presentation.md#slide-15) | [Довідник MediatR](docs/MediatR-Guide.md#part-4)
+5. **Entity Framework Core Fluent API:** Як мапити Value Objects через `HasConversion` та `OwnsOne`, використовувати Interceptors замість перевантаження методів.  
+   👉 *Читати:* [Слайди 9 та 11 у презентації](docs/Architecture-Presentation.md#slide-9)
+6. **Result Pattern:** Як відмовитися від повільних та небезпечних винятків (`Exceptions for Flow Control`) на користь явних та швидких результатів `Result<T>`.  
+   👉 *Читати:* [Слайди 20–22 у презентації](docs/Architecture-Presentation.md#slide-20)
+7. **Реалістичний сидинг через Bogus:** Як наповнювати базу багатими україномовними даними з детермінованим зерном.  
+   👉 *Читати:* [Слайд 23 у презентації](docs/Architecture-Presentation.md#slide-23)
+
+[⬆ До змісту](#toc)
+
+---
+
+<a id="diagram"></a>
+## 🏛️ Візуальна схема архітектури
 
 ```mermaid
 graph TD
-    UI["🌐 WebApi (Presentation)<br/>Контролери, Middleware, Scalar UI"] --> App["⚙️ Application<br/>CQRS Commands/Queries, MediatR, Behaviors, DTOs"]
-    Infra["🗄️ Infrastructure<br/>EF Core, Fluent API, Bogus Seeder, SQLite"] --> App
-    Infra --> Domain["💎 Domain (Core)<br/>Entities, Value Objects, Domain Events, Enums"]
-    App --> Domain
-    
-    style Domain fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    subgraph "Зовнішній світ (Infrastructure & Presentation)"
+        Web["🌐 WebApi<br/>(Controllers, ProblemDetails, Scalar UI)"]
+        Infra["🗄️ Infrastructure<br/>(EF Core, SQLite, Interceptors, Bogus Seeder)"]
+    end
+
+    subgraph "Внутрішній світ (Core Business Logic)"
+        App["⚙️ Application<br/>(CQRS Commands/Queries, MediatR, Behaviors, DTOs, Result Pattern)"]
+        Dom["💎 Domain<br/>(Entities, Value Objects, Domain Events, Enums)"]
+    end
+
+    Web --> App
+    Infra --> App
+    Infra --> Dom
+    App --> Dom
+
+    style Dom fill:#e1f5fe,stroke:#0288d1,stroke-width:3px;
     style App fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
     style Infra fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
-    style UI fill:#fce4ec,stroke:#c2185b,stroke-width:2px;
+    style Web fill:#fce4ec,stroke:#c2185b,stroke-width:2px;
 ```
 
-### 1. `src/Domain` (Ядро предметної області)
-- **Залежності**: 0 (повна ізоляція від баз даних, фреймворків чи HTTP).
-- **Містить**:
-  - `BaseEntity` — базовий клас з підтримкою `Id` та реєстрації доменних подій.
-  - `BaseAuditableEntity` — властивості для аудиту (`CreatedAtUtc`, `CreatedBy`, `LastModifiedAtUtc`).
-  - `ValueObject` — базовий абстрактний клас, що реалізує порівняння за значенням властивостей (`GetEqualityComponents`).
-  - `Colour` — Value Object кольору оформлення з перевіркою підтримуваних hex-кодів.
-  - `Address` — комплексний Value Object фізичної адреси (вулиця, місто, область, індекс).
-  - `TodoList` та `TodoItem` — сутності бізнес-моделі із захистом інваріантів (наприклад, метод `MarkComplete()` піднімає подію).
-  - `TodoItemCompletedEvent` — доменна подія завершення завдання.
-
-### 2. `src/Application` (Бізнес-логіка та Use Cases)
-- **Залежності**: тільки `Domain`.
-- **Містить**:
-  - **CQRS Commands**: `CreateTodoList`, `UpdateTodoList`, `DeleteTodoList`, `CreateTodoItem`, `UpdateTodoItem`, `DeleteTodoItem`.
-  - **CQRS Queries**: `GetTodoListsQuery`, `GetTodoItemsWithPaginationQuery` (з пагінацією в БД через `Skip`/`Take`).
-  - **Pipeline Behaviors (MediatR)**:
-    - `LoggingBehavior` — логування кожного запиту.
-    - `ValidationBehavior` — автоматичний запуск FluentValidation перед викликом хендлера.
-    - `PerformanceBehavior` — замір часу та попередження у лог, якщо запит тривав > 500 мс.
-  - **Інтерфейси**: `IApplicationDbContext`, `IDateTimeProvider` (принцип інверсії залежностей).
-
-### 3. `src/Infrastructure` (Робота з базою даних та сервісами)
-- **Залежності**: `Application` та `Domain`.
-- **Містить**:
-  - `ApplicationDbContext` — реалізація контексту EF Core.
-  - **Fluent API Configurations**:
-    - `TodoListConfiguration` — конфігурація таблиці `TodoLists`, зв'язків та мапінгу Value Objects.
-    - `TodoItemConfiguration` — конфігурація таблиці `TodoItems` та індексів.
-  - **Interceptors**:
-    - `AuditableEntityInterceptor` — автоматично проставляє дати створення/оновлення.
-    - `DispatchDomainEventsInterceptor` — публікує накопичені сутностями події через MediatR при виклику `SaveChangesAsync()`.
-  - **Bogus Seeder**:
-    - `ApplicationDbContextInitialiser` — генерує локалізовані українські списки, завдання, пріоритети та адреси, якщо база порожня.
-
-### 4. `src/WebApi` (Presentation шар)
-- **Залежності**: `Application` та `Infrastructure` (Composition Root).
-- **Містить**:
-  - `ApiControllerBase` — базовий клас з лінивою ініціалізацією `ISender`.
-  - Тонкі REST-контролери (`TodoListsController`, `TodoItemsController`), які лише делегують виклик у MediatR.
-  - `ExceptionHandlingMiddleware` — централізований обробник винятків у форматі RFC 7807 (ProblemDetails).
-  - `Program.cs` — реєстрація сервісів, сидинг та запуск конвеєра.
+[⬆ До змісту](#toc)
 
 ---
 
-## 🎯 Глибоке занурення в патерни
+<a id="code-nav"></a>
+## 🗺️ Навігація по коду: Що і де дивитися студенту?
 
-### 🔹 Entity проти Value Object
-| Критерій | Entity (Сутність) | Value Object (Об'єкт-значення) |
+### 1. 💎 Слой Domain (Ядро предметної області)
+Повна ізоляція: 0 залежностей від баз даних чи веб-серверів.
+- [src/Domain/Common/ValueObject.cs](src/Domain/Common/ValueObject.cs) — базовий клас равенства по значенню (`GetEqualityComponents`, перевантаження `==`, `!=`).
+- [src/Domain/ValueObjects/Colour.cs](src/Domain/ValueObjects/Colour.cs) — одинарний Value Object із фабричним методом `From()` та захистом допустимих кольорів.
+- [src/Domain/ValueObjects/Address.cs](src/Domain/ValueObjects/Address.cs) — комплексний Value Object фізичної адреси.
+- [src/Domain/Entities/TodoItem.cs](src/Domain/Entities/TodoItem.cs) — багата доменна модель (метод `MarkComplete()` автоматично генерує доменну подію).
+- [src/Domain/Events/TodoItemCompletedEvent.cs](src/Domain/Events/TodoItemCompletedEvent.cs) — доменна подія (`INotification`).
+
+### 2. ⚙️ Слой Application (Бізнес-сценарії / Use Cases)
+Залежить тільки від `Domain`. Реалізує CQRS та шину MediatR.
+- [src/Application/Common/Models/Result.cs](src/Application/Common/Models/Result.cs) — реалізація Result Pattern (`Result<T>`, `Error`, `ErrorType.NotFound` тощо).
+- [src/Application/Common/Behaviors/ValidationBehavior.cs](src/Application/Common/Behaviors/ValidationBehavior.cs) — перехоплювач конвеєра, що запускає FluentValidation до виклику хендлера (**Short-Circuiting**).
+- [src/Application/Common/Behaviors/LoggingBehavior.cs](src/Application/Common/Behaviors/LoggingBehavior.cs) та [PerformanceBehavior.cs](src/Application/Common/Behaviors/PerformanceBehavior.cs) — AOP-логування та моніторинг швидкодії.
+- [src/Application/TodoLists/Queries/GetTodoLists/GetTodoListsQueryHandler.cs](src/Application/TodoLists/Queries/GetTodoLists/GetTodoListsQueryHandler.cs) — приклад швидкого читання (`AsNoTracking()`, проекція `Select` у DTO).
+- [src/Application/TodoLists/Commands/CreateTodoList/CreateTodoListCommandHandler.cs](src/Application/TodoLists/Commands/CreateTodoList/CreateTodoListCommandHandler.cs) — команда зміни стану агрегату.
+- [src/Application/TodoItems/Queries/GetTodoItemById/GetTodoItemByIdQuery.cs](src/Application/TodoItems/Queries/GetTodoItemById/GetTodoItemByIdQuery.cs) — демонстрація використання Result Pattern замість `NotFoundException`.
+
+### 3. 🗄️ Слой Infrastructure (База даних та адаптери)
+Реалізація інтерфейсів `Application` через Entity Framework Core та SQLite.
+- [src/Infrastructure/Data/Configurations/TodoListConfiguration.cs](src/Infrastructure/Data/Configurations/TodoListConfiguration.cs) — Fluent API налаштування:
+  - `HasConversion` для Value Object `Colour`;
+  - `OwnsOne` для комплексного Value Object `Address`.
+- [src/Infrastructure/Data/Interceptors/AuditableEntityInterceptor.cs](src/Infrastructure/Data/Interceptors/AuditableEntityInterceptor.cs) — перехоплювач для автоматичного заповнення дат `CreatedAtUtc` та `LastModifiedAtUtc`.
+- [src/Infrastructure/Data/Interceptors/DispatchDomainEventsInterceptor.cs](src/Infrastructure/Data/Interceptors/DispatchDomainEventsInterceptor.cs) — автоматична публікація доменних подій після фіксації транзакції (`SaveChangesAsync`).
+- [src/Infrastructure/Data/Seeding/ApplicationDbContextInitialiser.cs](src/Infrastructure/Data/Seeding/ApplicationDbContextInitialiser.cs) — реалістична генерація тестових даних українською мовою через бібліотеку **Bogus**.
+
+### 4. 🌐 Слой WebApi (Точка входу та HTTP-контракти)
+- [src/WebApi/Controllers/ApiControllerBase.cs](src/WebApi/Controllers/ApiControllerBase.cs) — тонкий контролер з `ISender` та методом `HandleResult()` для автоматичного мапінгу `Result<T>` у відповіді ProblemDetails (RFC 7807).
+- [src/WebApi/Controllers/TodoListsController.cs](src/WebApi/Controllers/TodoListsController.cs) та [TodoItemsController.cs](src/WebApi/Controllers/TodoItemsController.cs) — REST API ендпоінти.
+- [src/WebApi/Middleware/ExceptionHandlingMiddleware.cs](src/WebApi/Middleware/ExceptionHandlingMiddleware.cs) — централізований обробник аварійних винятків.
+- [src/WebApi/Program.cs](src/WebApi/Program.cs) — конфігурація DI, запуск Seeder та підключення інтерактивного UI Scalar.
+
+[⬆ До змісту](#toc)
+
+---
+
+<a id="quickstart"></a>
+## 🚀 Швидкий старт
+
+### 1. Передумови
+Встановлений SDK: **.NET 10** (або .NET 8/9).
+```bash
+dotnet --version
+```
+
+### 2. Запуск програми
+У кореневій директорії репозиторію виконайте:
+```bash
+dotnet run --project src/WebApi
+```
+
+### 3. Що станеться автоматично при першому старті:
+1. EF Core створить локальний файл бази даних SQLite `CleanArchitecture.db`.
+2. Бібліотека **Bogus** згенерує детермінований набір із 5 детальних списків та понад 20 завдань українською мовою.
+3. Додаток почне слухати запити на локальному порту:
+```
+info: Infrastructure.Data.Seeding.ApplicationDbContextInitialiser[0]
+      Успішно згенеровано та збережено 5 списків та 24 завдань через Bogus!
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5194
+```
+
+### 4. Інтерактивна документація Scalar API UI
+Відкрийте браузер за адресою:  
+👉 **`http://localhost:5194`** (або `http://localhost:5194/scalar/v1`)  
+Вам відкриється сучасна, зручна панель тестування всіх ендпоінтів з можливістю відправки запитів в один клік!
+
+[⬆ До змісту](#toc)
+
+---
+
+<a id="practice"></a>
+## 🧪 Сценарії для перевірки знань (Практикум)
+
+| Що протестувати | Як виконати | Що спостерігати |
 | :--- | :--- | :--- |
-| **Ідентичність** | Визначається за унікальним `Id`. Дві сутності з різним Id — різні об'єкти, навіть якщо поля збігаються. | Не має Id. Визначається виключно значеннями своїх полів. |
-| **Мутабельність** | Може змінювати свій стан з часом (наприклад, завдання змінює назву). | **Незмінний (Immutable)**. При зміні створюється новий об'єкт. |
-| **Рівність** | `entity1.Id == entity2.Id` | Порівнюються всі властивості (`GetEqualityComponents()`). |
-| **Приклад у проекті** | `TodoList`, `TodoItem` | `Colour` (`#FFFFFF`), `Address` (вулиця, місто, індекс) |
+| **1. Швидке читання (CQRS Query)** | `GET /api/todolists` | Отримання списків з їхніми кольорами (Colour) та адресами (Location). У логах видно чистий SQL без відстеження змін ChangeTracker. |
+| **2. Result Pattern (Успіх)** | `GET /api/todoitems/1` | Отримання завдання з `Id = 1`, повертається статус `200 OK` через `HandleResult()`. |
+| **3. Result Pattern (Запис відсутній)** | `GET /api/todoitems/999` | Повертається `404 Not Found` з детальним JSON ProblemDetails. **При цьому в коді не було викинуто жодного Exception!** |
+| **4. Валідація FluentValidation** | `POST /api/todolists` із `{ "title": "", "colour": "#INVALID" }` | Конвейер `ValidationBehavior` блокує запит до виклику хендлера і повертає `400 Bad Request` зі списком помилок за полями. |
+| **5. Доменна подія (Domain Event)** | `PUT /api/todoitems/1` із `{ "done": true }` | При зміні статусу на `done: true` у консолі з'являється лог: `ДОМЕННА ПОДІЯ: Завдання позначено як виконане!`. |
 
-### 🔹 Мапінг Value Objects у EF Core
-1. **Одинарні Value Objects (`Colour`)** через `HasConversion`:
-   ```csharp
-   builder.Property(t => t.Colour)
-       .HasConversion(colour => colour.Code, code => Colour.From(code))
-       .HasMaxLength(10);
-   ```
-2. **Комплексні Value Objects (`Address`)** через `OwnsOne`:
-   ```csharp
-   builder.OwnsOne(b => b.Location, ab =>
-   {
-       ab.Property(a => a.Street).HasColumnName("Location_Street").HasMaxLength(150);
-       ab.Property(a => a.City).HasColumnName("Location_City").HasMaxLength(100);
-   });
-   ```
-
-### 🔹 CQRS та MediatR Pipeline Behaviors
-Замість монолітних сервісів на 1000 рядків, кожна операція — це окремий файл (`Command` або `Query`).
-Запит проходить крізь конвеєр поведінки автоматично:
-```
-HTTP Запит 
-   ⬇
-[LoggingBehavior]     -> Запис у лог: "Початок обробки CreateTodoListCommand"
-   ⬇
-[ValidationBehavior]  -> FluentValidation: перевірка унікальності назви, кольору...
-   ⬇ (якщо валідація не пройшла -> викидається ValidationException)
-[PerformanceBehavior] -> Замір часу виконання (Stopwatch)
-   ⬇
-[CommandHandler]      -> Чиста бізнес-логіка (без ручних перевірок)
-   ⬇
-[SaveChanges]         -> AuditableEntityInterceptor + DispatchDomainEventsInterceptor
-```
-
-> 📖 **Детальний розбір інтерфейсів та методів MediatR** (`ISender`, `IPublisher`, `IMediator`, `IRequest<T>`, `IRequestHandler<T, R>`, `INotification`, `IPipelineBehavior`) читайте у спеціальному довіднику:  
-> 👉 [docs/MediatR-Guide.md](file:///c:/Users/Yurii/source/repos/-%20Examples%20ASP.NET/AspNet-%D0%A1leanArchitecture/docs/MediatR-Guide.md)
-
-
-### 🔹 Генерація тестових даних через Bogus
-При першому запуску програми клас `ApplicationDbContextInitialiser` наповнює SQLite базу реальними українськими даними:
-```csharp
-var addressFaker = new Faker<Address>("uk")
-    .CustomInstantiator(f => new Address(
-        f.Address.StreetAddress(),
-        f.Address.City(),
-        f.Address.State(),
-        "Україна",
-        f.Address.ZipCode()));
-```
+[⬆ До змісту](#toc)
 
 ---
 
-## 🚀 Як запустити проект
+<a id="homework"></a>
+## 🛠️ Практичне завдання: Як додати нову фічу?
 
-1. Переконайтеся, що встановлено .NET SDK (версія 8, 9 або 10):
-   ```bash
-   dotnet --version
-   ```
-2. Перейдіть до кореневої папки та запустіть проект:
-   ```bash
-   dotnet run --project src/WebApi
-   ```
-3. Після старту в консолі з'явиться повідомлення про сидинг:
-   ```
-   info: Infrastructure.Data.Seeding.ApplicationDbContextInitialiser[0]
-         Успішно згенеровано та збережено 5 списків та 24 завдань через Bogus!
-   info: Microsoft.Hosting.Lifetime[14]
-         Now listening on: http://localhost:5194
-   ```
-4. Відкрийте браузер за адресою:
-   👉 **`http://localhost:5194/scalar/v1`** (або просто `http://localhost:5194`)
-   Вам відкриється сучасна панель тестування всіх API-ендпоінтів!
+Спробуйте самостійно додати до проекту сутність **`Category` (Категорія)**:
+1. **Domain:** Створіть `Domain/Entities/Category.cs`, успадкуйте від `BaseAuditableEntity`.
+2. **Infrastructure:** Створіть `Infrastructure/Data/Configurations/CategoryConfiguration.cs` та додайте `DbSet<Category>` у `IApplicationDbContext` і `ApplicationDbContext`.
+3. **Application:** Створіть команду `CreateCategoryCommand` з валідатором `CreateCategoryCommandValidator` та обробником `CreateCategoryCommandHandler`.
+4. **WebApi:** Створіть `CategoriesController`, що успадковує `ApiControllerBase`.
+
+[⬆ До змісту](#toc)
 
 ---
 
-## 🧪 Приклади тестування API
+<a id="solution-structure"></a>
+## 🤝 Структура файлів рішення Visual Studio
 
-### 1. Отримати всі списки із завданнями (CQRS Query):
-```http
-GET http://localhost:5194/api/todolists
-```
+Рішення організовано у файлі **`AspNet-CleanArchitecture.sln`**.  
+У Visual Studio або JetBrains Rider ви побачите зручні папки рішення (Solution Folders):
+- 📁 **`src/`** — чотири проекти архітектури (`Domain`, `Application`, `Infrastructure`, `WebApi`).
+- 📁 **`docs/`** — презентація `Architecture-Presentation.md` та довідник `MediatR-Guide.md`.
+- 📁 **`Solution Items/`** — `README.md`, `.gitignore`, `.gitattributes`.
 
-### 2. Створити новий список (CQRS Command):
-```http
-POST http://localhost:5194/api/todolists
-Content-Type: application/json
-
-{
-  "title": "Мій перший список",
-  "colour": "#6666FF",
-  "street": "вул. Хрещатик, 1",
-  "city": "Київ",
-  "country": "Україна"
-}
-```
-
-### 3. Перевірити валідацію FluentValidation (Помилка 400 Bad Request):
-```http
-POST http://localhost:5194/api/todolists
-Content-Type: application/json
-
-{
-  "title": "",
-  "colour": "#INVALID"
-}
-```
-**Відповідь сервера (RFC 7807 ProblemDetails):**
-```json
-{
-  "title": "Помилка валідації вхідних даних",
-  "status": 400,
-  "detail": "Один або більше параметрів запиту не відповідають бізнес-правилам.",
-  "errors": {
-    "Title": ["Назва списку є обов'язковою."],
-    "Colour": ["Вказаний колір не підтримується системою."]
-  }
-}
-```
-
-### 4. Отримати завдання списку з пагінацією (CQRS Query):
-```http
-GET http://localhost:5194/api/todoitems?listId=1&pageNumber=1&pageSize=5
-```
-
-### 5. Позначити завдання виконаним (Виклик Domain Event):
-```http
-PUT http://localhost:5194/api/todoitems/1
-Content-Type: application/json
-
-{
-  "id": 1,
-  "title": "Зробити бекап бази даних",
-  "note": "Успішно завершено",
-  "priority": 3,
-  "done": true
-}
-```
-*У консолі сервера ви побачите спрацювання перехоплювача та обробника доменної події:*
-```
-info: Application.TodoItems.EventHandlers.TodoItemCompletedEventHandler[0]
-      ДОМЕННА ПОДІЯ: Завдання "Зробити бекап бази даних" (Id: 1) позначено як виконане!
-```
+[⬆ До змісту](#toc)
 
 ---
 
-## 💡 Покрокова інструкція: Як додати нову сутність (Use Case)
-
-Якщо ви хочете потренуватися та розширити цей проект (наприклад, додати сутність `Tag` — тег для завдань):
-1. **Domain**:
-   - Створіть `Tag.cs` у `Domain/Entities`, успадкуйте від `BaseAuditableEntity`.
-   - Додайте зв'язок з `TodoItem`.
-2. **Infrastructure**:
-   - Створіть `TagConfiguration.cs` у `Infrastructure/Data/Configurations` з Fluent API налаштуваннями.
-   - Додайте `DbSet<Tag> Tags` в `IApplicationDbContext` (у шарі Application) та `ApplicationDbContext` (у Infrastructure).
-3. **Application**:
-   - Створіть папку `Application/Tags`.
-   - Додайте команду створення: `CreateTagCommand.cs`, валідатор `CreateTagCommandValidator.cs` та обробник `CreateTagCommandHandler.cs`.
-4. **WebApi**:
-   - Створіть `TagsController.cs`, успадкований від `ApiControllerBase`.
-   - Додайте метод `POST` з викликом `await Mediator.Send(command)`.
-
----
-
-Вдалого навчання та чистого коду! 🚀
+*Приємного вивчення та чистого коду! 🚀*
