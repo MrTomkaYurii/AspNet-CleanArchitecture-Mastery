@@ -204,7 +204,7 @@ info: Microsoft.Hosting.Lifetime[14]
 <a id="solution-structure"></a>
 ## 🤝 Структура файлів рішення Visual Studio
 
-Рішення організовано у файлі **`AspNet-CleanArchitecture.sln`**.  
+Рішення організовано у файлі **`AspNet-CleanArchitecture-Mastery.sln`**.  
 У Visual Studio або JetBrains Rider ви побачите зручні папки рішення (Solution Folders):
 - 📁 **`src/`** — чотири проекти архітектури (`Domain`, `Application`, `Infrastructure`, `WebApi`).
 - 📁 **`docs/`** — презентація `Architecture-Presentation.md` та довідник `MediatR-Guide.md`.
